@@ -5,6 +5,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.inventory.ItemStack;
@@ -21,7 +22,7 @@ public class Accuracy extends JavaPlugin implements Listener
         getServer().getPluginManager().registerEvents(this, this);
     }
     
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onProjectileFire(ProjectileLaunchEvent event)
     {
         ProjectileSource source = event.getEntity().getShooter();
