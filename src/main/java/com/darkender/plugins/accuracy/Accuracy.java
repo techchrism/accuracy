@@ -30,13 +30,42 @@ public class Accuracy extends JavaPlugin implements Listener
         {
             Player p = (Player) source;
             
-            // Ignore multishot crossbows
-            if(!isAllowedSource(p.getInventory().getItemInMainHand()) || !isAllowedSource(p.getInventory().getItemInOffHand()))
+            // Treat multishot crossbows specially
+            // This event gets called once for each arrow
+            if(isMultishotCrossbow(p.getInventory().getItemInMainHand()) || isMultishotCrossbow(p.getInventory().getItemInOffHand()))
             {
-                return;
+                Vector velocityDirection = event.getEntity().getVelocity().clone().normalize();
+                
+                // Get the unit vector coming out the top of the player's head
+                Vector head = getVectorFromPitch(p.getEyeLocation().getPitch() - 90.0F, p.getEyeLocation().getYaw()).normalize();
+                
+                // Rotate around the head vector to get the left and right positions
+                Vector right = p.getEyeLocation().getDirection().clone();
+                right.rotateAroundNonUnitAxis(head, -10 * (Math.PI / 180.0));
+                
+                double current = event.getEntity().getVelocity().length();
+                if(right.distanceSquared(velocityDirection) < 0.001)
+                {
+                    event.getEntity().setVelocity(right.multiply(current));
+                }
+                else
+                {
+                    Vector left = p.getEyeLocation().getDirection().clone();
+                    left.rotateAroundNonUnitAxis(head, 10 * (Math.PI / 180.0));
+                    if(left.distanceSquared(velocityDirection) < 0.001)
+                    {
+                        event.getEntity().setVelocity(left.multiply(current));
+                    }
+                    else
+                    {
+                        event.getEntity().setVelocity(p.getEyeLocation().getDirection().clone().multiply(current));
+                    }
+                }
             }
-            
-            fixVelocity(event.getEntity(), p.getEyeLocation().getDirection());
+            else
+            {
+                fixVelocity(event.getEntity(), p.getEyeLocation().getDirection());
+            }
         }
         else if(source instanceof BlockProjectileSource)
         {
@@ -47,19 +76,27 @@ public class Accuracy extends JavaPlugin implements Listener
         }
     }
     
-    private boolean isAllowedSource(ItemStack item)
+    private Vector getVectorFromPitch(float pitch, float yaw)
+    {
+        double pitchRad = pitch * (Math.PI / 180);
+        double yawRad = -yaw * (Math.PI / 180);
+    
+        double cosYawRad = Math.cos(yawRad);
+        double sinYawRad = Math.sin(yawRad);
+        double cosPitchRad = Math.cos(pitchRad);
+        double sinPitchRad = Math.sin(pitchRad);
+    
+        return new Vector((sinYawRad * cosPitchRad), -sinPitchRad, (cosYawRad * cosPitchRad));
+    }
+    
+    private boolean isMultishotCrossbow(ItemStack item)
     {
         if(item == null)
         {
-            return true;
-        }
-        
-        if(item.getType() == Material.CROSSBOW && item.getEnchantmentLevel(Enchantment.MULTISHOT) != 0)
-        {
             return false;
         }
-        
-        return true;
+    
+        return item.getType() == Material.CROSSBOW && item.getEnchantmentLevel(Enchantment.MULTISHOT) != 0;
     }
     
     private void fixVelocity(Entity entity, Vector direction)
