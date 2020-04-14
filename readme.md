@@ -11,10 +11,8 @@ Thrown tridents without / with the plugin
 
 The following projectiles are more accurate:
  - Arrows from bows
- - Arrows from crossbows
+ - Arrows from crossbows (including multishot)
  - Arrows from dispensers
  - Tridents
  - Splash / Lingering potions
  - Enderpearls
-
-Note that crossbows with multishot are not currently corrected. 

@@ -6,7 +6,7 @@
 
     <groupId>com.darkender.plugins</groupId>
     <artifactId>accuracy</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
     <name>Accuracy</name>
 
     <properties>
