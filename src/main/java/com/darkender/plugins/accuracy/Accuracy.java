@@ -1,6 +1,7 @@
 package com.darkender.plugins.accuracy;
 
 import org.bukkit.Material;
+import org.bukkit.block.BlockFace;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -16,10 +17,29 @@ import org.bukkit.util.Vector;
 
 public class Accuracy extends JavaPlugin implements Listener
 {
+    private Material crossbow = null;
+    private Enchantment multishot = null;
+    
     @Override
     public void onEnable()
     {
         getServer().getPluginManager().registerEvents(this, this);
+        try
+        {
+            crossbow = Material.valueOf("CROSSBOW");
+            for(Enchantment enchantment : Enchantment.values())
+            {
+                if(enchantment.getKey().getNamespace().equals("minecraft") && enchantment.getKey().getKey().equals("multishot"))
+                {
+                    multishot = enchantment;
+                }
+            }
+        }
+        catch(Exception e)
+        {
+            crossbow = null;
+            multishot = null;
+        }
     }
     
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -41,7 +61,7 @@ public class Accuracy extends JavaPlugin implements Listener
                 
                 // Rotate around the head vector to get the left and right positions
                 Vector right = p.getEyeLocation().getDirection().clone();
-                right.rotateAroundNonUnitAxis(head, -10 * (Math.PI / 180.0));
+                OldVersionCompatibility.rotateAroundNonUnitAxis(right, head, -10 * (Math.PI / 180.0));
                 
                 double current = event.getEntity().getVelocity().length();
                 if(right.distanceSquared(velocityDirection) < 0.001)
@@ -51,7 +71,7 @@ public class Accuracy extends JavaPlugin implements Listener
                 else
                 {
                     Vector left = p.getEyeLocation().getDirection().clone();
-                    left.rotateAroundNonUnitAxis(head, 10 * (Math.PI / 180.0));
+                    OldVersionCompatibility.rotateAroundNonUnitAxis(left, head, 10 * (Math.PI / 180.0));
                     if(left.distanceSquared(velocityDirection) < 0.001)
                     {
                         event.getEntity().setVelocity(left.multiply(current));
@@ -71,8 +91,8 @@ public class Accuracy extends JavaPlugin implements Listener
         {
             // There's a better way to do this for sure
             // Right now it's comparing the entity's block with the source block to form a normal vector
-            fixVelocity(event.getEntity(),
-                    ((BlockProjectileSource) source).getBlock().getFace(event.getEntity().getLocation().getBlock()).getDirection());
+            BlockFace face = ((BlockProjectileSource) source).getBlock().getFace(event.getEntity().getLocation().getBlock());
+            fixVelocity(event.getEntity(), OldVersionCompatibility.getBlockFaceDirection(face));
         }
     }
     
@@ -91,12 +111,12 @@ public class Accuracy extends JavaPlugin implements Listener
     
     private boolean isMultishotCrossbow(ItemStack item)
     {
-        if(item == null)
+        if(item == null || crossbow == null || multishot == null)
         {
             return false;
         }
     
-        return item.getType() == Material.CROSSBOW && item.getEnchantmentLevel(Enchantment.MULTISHOT) != 0;
+        return item.getType() == crossbow && item.getEnchantmentLevel(multishot) != 0;
     }
     
     private void fixVelocity(Entity entity, Vector direction)
