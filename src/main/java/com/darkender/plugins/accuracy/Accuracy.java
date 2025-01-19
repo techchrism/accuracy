@@ -12,16 +12,23 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.projectiles.BlockProjectileSource;
 import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.util.Vector;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
 public class Accuracy extends JavaPlugin implements Listener
 {
     private Material crossbow = null;
     private Enchantment multishot = null;
+    private final Set<UUID> playersWhoHaveHadJoinEvents = new HashSet<>();
     
     @Override
     public void onEnable()
@@ -44,14 +51,43 @@ public class Accuracy extends JavaPlugin implements Listener
             multishot = null;
         }
     }
-    
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onProjectileFire(ProjectileLaunchEvent event)
+    private void onPlayerJoin(PlayerJoinEvent event)
+    {
+        playersWhoHaveHadJoinEvents.add(event.getPlayer().getUniqueId());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    private void onPlayerQuit(PlayerQuitEvent event)
+    {
+        playersWhoHaveHadJoinEvents.remove(event.getPlayer().getUniqueId());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    private void onProjectileFire(ProjectileLaunchEvent event)
     {
         ProjectileSource source = event.getEntity().getShooter();
         if(source instanceof Player)
         {
             Player p = (Player) source;
+
+            /*
+                Ignore projectiles from players who haven't yet had a join event
+
+                Specifically, this fixes the issue of Accuracy imparting velocity on ender pearls
+                that are created just as a player joins. This breaks stasis chambers.
+                From testing, this event is called for the ender pearls *before* the player join
+                event is called, but this result may not persist in future versions.
+
+                A better way to do this would be to use PlayerLaunchProjectileEvent from Paper and
+                ignore player-launched projectiles in ProjectileLaunchEvent, but I don't want to
+                break Spigot compatibility just yet.
+             */
+            if(!playersWhoHaveHadJoinEvents.contains(p.getUniqueId()))
+            {
+                return;
+            }
             
             // Treat multishot crossbows specially
             // This event gets called once for each arrow
