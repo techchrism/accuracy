@@ -1,7 +1,10 @@
 package com.darkender.plugins.accuracy;
 
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -89,10 +92,21 @@ public class Accuracy extends JavaPlugin implements Listener
         }
         else if(source instanceof BlockProjectileSource)
         {
-            // There's a better way to do this for sure
-            // Right now it's comparing the entity's block with the source block to form a normal vector
-            BlockFace face = ((BlockProjectileSource) source).getBlock().getFace(event.getEntity().getLocation().getBlock());
-            fixVelocity(event.getEntity(), OldVersionCompatibility.getBlockFaceDirection(face));
+            Block sourceBlock = ((BlockProjectileSource) source).getBlock();
+            BlockData sourceBlockData = sourceBlock.getBlockData();
+            if(sourceBlockData instanceof Directional)
+            {
+                Directional d = (Directional)sourceBlockData;
+                fixVelocity(event.getEntity(), OldVersionCompatibility.getBlockFaceDirection(d.getFacing()));
+            }
+            else
+            {
+                Block eventBlock = event.getEntity().getLocation().getBlock();
+                BlockFace face = sourceBlock.getFace(eventBlock);
+                Vector direction =  OldVersionCompatibility.getBlockFaceDirection(face);
+                if(direction != null)
+                    fixVelocity(event.getEntity(), direction);
+            }
         }
     }
     
